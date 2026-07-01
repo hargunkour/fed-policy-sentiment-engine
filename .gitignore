@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+.env
+backend/data/pdfs/*.pdf
+.DS_Store
+*.db-journal
