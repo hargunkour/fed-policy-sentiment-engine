@@ -63,6 +63,7 @@ if current_view == "faq":
 # --- Sidebar: Time Range, Meeting selector, Economic Term Search ---
 from sidebar import render_sidebar
 from kpi import render_kpi_row
+from kpi_details import render_kpi_detail
 from utils import year_of
 from backend.config import ALL_NGRAMS
 
@@ -85,9 +86,30 @@ if not meeting_dates:
     st.error("No meetings found in the database. Run the ingest script first.")
     st.stop()
 
+
+
+# --- Everything below only renders on the "home" view ---
+
 ngram_options = sorted({" ".join(t) for n_list in ALL_NGRAMS.values() for t in n_list})
 
-selected_year_range, selected_meeting, selected_term = render_sidebar(meeting_dates, ngram_options)
+selected_year_range, selected_meeting, selected_term = render_sidebar(
+    meeting_dates,
+    ngram_options,
+)
+
+st.session_state["selected_year_range"] = selected_year_range
+st.session_state["selected_meeting"] = selected_meeting
+st.session_state["selected_term"] = selected_term
+
+if current_view in ("kpi1", "kpi2", "kpi3"):
+    render_kpi_detail(
+        current_view,
+        meetings,
+        selected_year_range,
+        ALL_NGRAMS,
+    )
+    st.stop()
+
 
 # Make selections available to later steps (KPI cards, tabs) without re-threading params.
 st.session_state["selected_year_range"] = selected_year_range

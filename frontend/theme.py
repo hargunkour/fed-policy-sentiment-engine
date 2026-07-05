@@ -1,11 +1,14 @@
 """
-Visual theme for the FOMC Sentiment Dashboard: 
-font, color palette, andreusable CSS classes (cards, buttons, header).
+Visual theme for the FOMC Sentiment Dashboard: font, color palette, and
+reusable CSS classes (cards, buttons, header). Injected once per page
+load via inject_theme(). Pure styling — no data or routing logic, and
+no CSS used to position widgets (button placement is handled entirely
+by Streamlit layout primitives in kpi.py / kpi_details.py).
 """
 
 import streamlit as st
 
-# --- Palette ---
+# --- Palette (from Figma) ---
 COLOR_ACCENT = "#506FC8"
 COLOR_BG = "#D9D9D9"
 COLOR_CARD = "#FFFFFF"
@@ -19,20 +22,20 @@ _CSS = f"""
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 html, body, [class*="css"] {{
-    font-family: 'Source Serif Pro', serif;
+    font-family: 'IBM Plex Sans', sans-serif;
 }}
 
 .stApp {{
     background-color: {COLOR_BG};
 }}
 
-/* Tighten default Streamlit top padding */
+/* Tighten default Streamlit top padding so the header sits like a real dashboard */
 .block-container {{
     padding-top: 2rem;
     padding-bottom: 2rem;
 }}
 
-/* Reusable card container for KPI cards, panels, etc. */
+/* Reusable card container for panels (FAQ placeholder, etc.) */
 .dashboard-card {{
     background-color: {COLOR_CARD};
     border: 1px solid {COLOR_BORDER};
@@ -56,6 +59,33 @@ html, body, [class*="css"] {{
 
 .kpi-value-positive {{ color: {COLOR_POSITIVE}; font-weight: 700; }}
 .kpi-value-negative {{ color: {COLOR_NEGATIVE}; font-weight: 700; }}
+
+/* KPI detail page: centered white info card. Static box styling only —
+   its position on the page comes from margin: auto, not from any
+   widget-positioning CSS. */
+.kpi-detail-inner-card {{
+    background-color: {COLOR_CARD};
+    border-radius: 12px;
+    padding: 2rem 2.5rem;
+    max-width: 520px;
+    margin: 1rem auto;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}}
+
+.kpi-detail-row {{
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0;
+    font-size: 1rem;
+    color: #4A5568;
+}}
+
+.arrow-column{{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:340px;
+}}
 
 /* Ghost/link-style button used for FAQs and Home nav */
 div[data-testid="stButton"] > button.ghost-nav {{
