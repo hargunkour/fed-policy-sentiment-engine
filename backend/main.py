@@ -44,7 +44,7 @@ def get_meeting_sentiment(date: str):
     top_positive = conn.execute(
         """
         SELECT ngram, final_adjusted_sentiment FROM ngram_sentiments
-        WHERE meeting_id = ? ORDER BY final_adjusted_sentiment DESC LIMIT 10
+        WHERE meeting_id = ? ORDER BY final_adjusted_sentiment DESC LIMIT 5
         """,
         (meeting["id"],),
     ).fetchall()
@@ -52,7 +52,7 @@ def get_meeting_sentiment(date: str):
     top_negative = conn.execute(
         """
         SELECT ngram, final_adjusted_sentiment FROM ngram_sentiments
-        WHERE meeting_id = ? ORDER BY final_adjusted_sentiment ASC LIMIT 10
+        WHERE meeting_id = ? ORDER BY final_adjusted_sentiment ASC LIMIT 5
         """,
         (meeting["id"],),
     ).fetchall()
@@ -110,6 +110,45 @@ def get_sentiment_overview():
     conn.close()
     return [dict(row) for row in rows]
 
+@app.get("/concepts/summary")
+def get_concepts_summary(start_year: int, end_year: int):
+    """
+    Returns concept coverage for meetings within [start_year, end_year]:
+    distinct unigrams/bigrams/trigrams actually detected, plus the top 5
+    most frequently occurring concepts (by number of occurrences across
+    meetings in range).
+
+    Meeting dates are stored as 'YYYY_MM_DD' strings; substr(date, 1, 4)
+    extracts the year for range filtering.
+    """
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT s.ngram, s.n_size, COUNT(*) AS occurrence_count
+        FROM ngram_sentiments s
+        JOIN meetings m ON m.id = s.meeting_id
+        WHERE CAST(substr(m.date, 1, 4) AS INTEGER) BETWEEN ? AND ?
+        GROUP BY s.ngram, s.n_size
+        ORDER BY occurrence_count DESC
+        """,
+        (start_year, end_year),
+    ).fetchall()
+    conn.close()
+
+    rows = [dict(r) for r in rows]
+    unigrams_found = sum(1 for r in rows if r["n_size"] == 1)
+    bigrams_found = sum(1 for r in rows if r["n_size"] == 2)
+    trigrams_found = sum(1 for r in rows if r["n_size"] == 3)
+
+    return {
+        "unigrams_found": unigrams_found,
+        "bigrams_found": bigrams_found,
+        "trigrams_found": trigrams_found,
+        "top_concepts": [
+            {"ngram": r["ngram"], "count": r["occurrence_count"]}
+            for r in rows[:5]
+        ],
+    }
 
 @app.post("/ingest")
 def trigger_ingest():
@@ -118,7 +157,7 @@ def trigger_ingest():
     deployed frontend — this is for you to manually re-populate the
     database if you add more PDFs later.
     """
-    from backend.ingest import run_ingest
+    from ingest import run_ingest
     run_ingest()
     return {"status": "ingest complete"}
 

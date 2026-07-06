@@ -25,6 +25,7 @@ def render_kpi_detail(
     meetings: list[dict],
     year_range: tuple[int, int],
     all_ngrams: dict,
+    concepts_summary=None,
 ):
 
     # Home button
@@ -65,7 +66,7 @@ def render_kpi_detail(
             _render_documents_analyzed(meetings, year_range)
 
         elif view == "kpi2":
-            _render_concepts_tracked(all_ngrams)
+            _render_concepts_tracked(concepts_summary)
 
         elif view == "kpi3":
             _render_avg_sentiment()
@@ -105,27 +106,35 @@ def _render_documents_analyzed(meetings: list[dict], year_range: tuple[int, int]
         unsafe_allow_html=True,
     )
 
+def _render_concepts_tracked(concepts_summary: dict | None):
+    summary = concepts_summary or {}
 
-def _render_concepts_tracked(all_ngrams: dict):
-    unigrams = len(all_ngrams.get(1, []))
-    bigrams = len(all_ngrams.get(2, []))
-    trigrams = len(all_ngrams.get(3, []))
+    unigrams = summary.get("unigrams_found", 0)
+    bigrams = summary.get("bigrams_found", 0)
+    trigrams = summary.get("trigrams_found", 0)
+    top_concepts = summary.get("top_concepts", [])
 
     st.markdown(
         f"""
         <div class="kpi-detail-inner-card">
-            <div class="kpi-detail-row"><span>Unigrams</span><b>{unigrams}</b></div>
-            <div class="kpi-detail-row"><span>Bigrams</span><b>{bigrams}</b></div>
-            <div class="kpi-detail-row"><span>Trigrams</span><b>{trigrams}</b></div>
+            <div class="kpi-detail-row"><span>Unigrams detected</span><b>{unigrams}</b></div>
+            <div class="kpi-detail-row"><span>Bigrams detected</span><b>{bigrams}</b></div>
+            <div class="kpi-detail-row"><span>Trigrams detected</span><b>{trigrams}</b></div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    st.info(
-        "Most frequent concepts (scoped to the selected year range) require a "
-        "new backend aggregation endpoint — coming in Step 5."
-    )
 
+    st.markdown("**Most frequent concepts in this range**")
+
+    if top_concepts:
+        for item in top_concepts[:5]:
+            st.markdown(
+                f"- {item.get('ngram', 'N/A')} ({item.get('count', 0)} occurrences)",
+                unsafe_allow_html=True
+            )
+    else:
+        st.caption("No concepts found for the selected year range.")
 
 def _render_avg_sentiment():
     # Value already computed once for the collapsed card in app.py;

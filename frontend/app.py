@@ -26,6 +26,11 @@ st.set_page_config(page_title="FOMC Sentiment Dashboard", layout="wide")
 inject_theme()
 init_view_state()
 
+def get_concepts_summary_if_needed(view, year_range):
+    if view != "kpi2":
+        return None
+    return fetch_concepts_summary(year_range[0], year_range[1])
+
 # --- Header row: title/subtitle on the left, context-aware nav button top-right ---
 # On the home view this button is "FAQs" (goes to the FAQ page).
 # On the FAQ view it flips to "Home" (returns to the dashboard) — never both.
@@ -79,6 +84,15 @@ def fetch_overview():
     resp.raise_for_status()
     return resp.json()
 
+@st.cache_data(ttl=60)
+def fetch_concepts_summary(start_year: int, end_year: int):
+    resp = requests.get(
+        f"{BACKEND_URL}/concepts/summary",
+        params={"start_year": start_year, "end_year": end_year},
+    )
+    resp.raise_for_status()
+    return resp.json()
+
 meetings = fetch_meetings()
 meeting_dates = [m["date"] for m in meetings]
 
@@ -102,12 +116,20 @@ st.session_state["selected_meeting"] = selected_meeting
 st.session_state["selected_term"] = selected_term
 
 if current_view in ("kpi1", "kpi2", "kpi3"):
+
+    concepts_summary = get_concepts_summary_if_needed(
+        current_view,
+        selected_year_range
+    )
+
     render_kpi_detail(
         current_view,
         meetings,
         selected_year_range,
         ALL_NGRAMS,
+        concepts_summary
     )
+
     st.stop()
 
 
