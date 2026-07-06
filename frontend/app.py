@@ -70,7 +70,8 @@ from sidebar import render_sidebar
 from kpi import render_kpi_row
 from kpi_details import render_kpi_detail
 from utils import year_of
-from backend.config import ALL_NGRAMS
+from tabs import render_meeting_overview_tab, render_time_series_tab, render_term_explorer_tab
+from backend.config import ALL_NGRAMS, INCLUDE_DICT
 
 @st.cache_data(ttl=60)
 def fetch_meetings():
@@ -92,6 +93,23 @@ def fetch_concepts_summary(start_year: int, end_year: int):
     )
     resp.raise_for_status()
     return resp.json()
+
+@st.cache_data(ttl=60)
+def fetch_meeting_sentiment(date):
+    resp = requests.get(f"{BACKEND_URL}/meetings/{date}/sentiment")
+    resp.raise_for_status()
+    return resp.json()
+ 
+ 
+@st.cache_data(ttl=60)
+def fetch_ngram_trend(ngram: str):
+    resp = requests.get(f"{BACKEND_URL}/sentiment/trend", params={"ngram": ngram.lower()})
+    if resp.status_code == 404:
+        return None
+    resp.raise_for_status()
+    df = pd.DataFrame(resp.json())
+    df["date"] = pd.to_datetime(df["date"], format="%Y_%m_%d")
+    return df
 
 meetings = fetch_meetings()
 meeting_dates = [m["date"] for m in meetings]
@@ -143,12 +161,26 @@ if selected_meeting is None:
 
 selected_date = selected_meeting  # keep existing variable name for the code below, unchanged
 
+
+# --- KPI detail views: full-page (reached via expand icons) ---
+if current_view in ("kpi1", "kpi2", "kpi3"):
+    concepts_summary = get_concepts_summary_if_needed(current_view, selected_year_range)
+    render_kpi_detail(current_view, meetings, selected_year_range, ALL_NGRAMS, concepts_summary)
+    st.stop()
+ 
+# --- Everything below only renders on the "home" view ---
+ 
+if selected_meeting is None:
+    st.stop()  # sidebar already showed the "no meetings in range" warning
+ 
+selected_date = selected_meeting  # keep existing variable name for the code below, unchanged
+ 
 # --- KPI cards: computed from meetings/overview data filtered to the selected years ---
 docs_in_range = [d for d in meeting_dates if selected_year_range[0] <= year_of(d) <= selected_year_range[1]]
 documents_analyzed = len(docs_in_range)
-
+ 
 concepts_tracked = sum(len(n_list) for n_list in ALL_NGRAMS.values())  # static, per config
-
+ 
 overview = fetch_overview()
 df_overview_kpi = pd.DataFrame(overview)
 if not df_overview_kpi.empty:
@@ -160,110 +192,33 @@ if not df_overview_kpi.empty:
     avg_sentiment = in_range["overall_sentiment"].mean() if not in_range.empty else 0.0
 else:
     avg_sentiment = 0.0
-
+ 
+# So the KPI3 detail page can show the same number without recomputing it.
+st.session_state["avg_sentiment_value"] = avg_sentiment
+ 
 render_kpi_row(documents_analyzed, concepts_tracked, avg_sentiment)
-
-if selected_meeting is None:
-    st.stop()  # sidebar already showed the "no meetings in range" warning
-
-selected_date = selected_meeting  # keep existing variable name for the code below, unchanged
-
-# --- Main panel: top positive/negative n-grams for selected meeting ---
-st.header(f"Sentiment breakdown — {selected_date}")
-
-@st.cache_data(ttl=60)
-def fetch_meeting_sentiment(date):
-    resp = requests.get(f"{BACKEND_URL}/meetings/{date}/sentiment")
-    resp.raise_for_status()
-    return resp.json()
-
-data = fetch_meeting_sentiment(selected_date)
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("Top 10 Positive (Dovish-leaning) N-grams")
-    df_pos = pd.DataFrame(data["top_positive"])
-    if not df_pos.empty:
-        fig_pos = go.Figure(go.Bar(
-            x=df_pos["final_adjusted_sentiment"],
-            y=df_pos["ngram"],
-            orientation="h",
-            marker_color="seagreen",
-        ))
-        fig_pos.update_layout(yaxis=dict(autorange="reversed"), height=400)
-        st.plotly_chart(fig_pos, use_container_width=True)
-    else:
-        st.info("No positive n-grams found for this meeting.")
-
-with col2:
-    st.subheader("Top 10 Negative (Hawkish-leaning) N-grams")
-    df_neg = pd.DataFrame(data["top_negative"])
-    if not df_neg.empty:
-        fig_neg = go.Figure(go.Bar(
-            x=df_neg["final_adjusted_sentiment"],
-            y=df_neg["ngram"],
-            orientation="h",
-            marker_color="indianred",
-        ))
-        fig_neg.update_layout(yaxis=dict(autorange="reversed"), height=400)
-        st.plotly_chart(fig_neg, use_container_width=True)
-    else:
-        st.info("No negative n-grams found for this meeting.")
-
-# --- Bottom panel: overall sentiment trend with recession shading ---
-st.header("Overall Sentiment Trend, 1996–2016")
-
-@st.cache_data(ttl=60)
-def fetch_overview():
-    resp = requests.get(f"{BACKEND_URL}/sentiment/overview")
-    resp.raise_for_status()
-    return resp.json()
-
-overview = fetch_overview()
-df_overview = pd.DataFrame(overview)
-df_overview["date"] = pd.to_datetime(df_overview["date"], format="%Y_%m_%d")
-
-fig_trend = go.Figure(go.Scatter(
-    x=df_overview["date"],
-    y=df_overview["overall_sentiment"],
-    mode="lines+markers",
-    line=dict(color="steelblue"),
-))
-
-# Recession shading 
-fig_trend.add_vrect(x0="2008-01-01", x1="2009-06-30",
-                     fillcolor="gray", opacity=0.2, line_width=0,
-                     annotation_text="2008 Financial Crisis", annotation_position="top left")
-fig_trend.add_vrect(x0="2020-02-01", x1="2020-04-30",
-                     fillcolor="gray", opacity=0.2, line_width=0,
-                     annotation_text="2020 COVID Shock", annotation_position="top left")
-
-fig_trend.update_layout(
-    xaxis_title="Meeting Date",
-    yaxis_title="Overall Sentiment (Hawkish ← 0 → Dovish)",
-    height=450,
+ 
+# Sync the sidebar's term search into the Term Explorer tab's active term,
+# but only when the sidebar selection actually changes — so clicking a
+# "related term" inside the tab isn't immediately overwritten on rerun.
+if selected_term and selected_term != st.session_state.get("_last_sidebar_term"):
+    st.session_state["term_explorer_active"] = selected_term
+st.session_state["_last_sidebar_term"] = selected_term
+ 
+df_overview_tabs = pd.DataFrame(overview)  # reuse the same fetch, no second network call
+df_overview_tabs["date"] = pd.to_datetime(df_overview_tabs["date"], format="%Y_%m_%d")
+ 
+meeting_overview_tab, time_series_tab, term_explorer_tab = st.tabs(
+    ["👁 Meeting Overview", "📈 Time Series Trend", "🔍 Term Explorer"]
 )
-st.plotly_chart(fig_trend, use_container_width=True)
-
-# --- Search box: any n-gram's full time series ---
-st.header("Search: N-gram Sentiment Over Time")
-search_ngram = st.text_input("Enter an n-gram exactly as it appears (e.g. 'oil prices', 'inflation')")
-
-if search_ngram:
-    resp = requests.get(f"{BACKEND_URL}/sentiment/trend", params={"ngram": search_ngram.lower()})
-    if resp.status_code == 404:
-        st.warning(f"No data found for '{search_ngram}'. Try another term.")
-    else:
-        df_search = pd.DataFrame(resp.json())
-        df_search["date"] = pd.to_datetime(df_search["date"], format="%Y_%m_%d")
-        fig_search = go.Figure(go.Scatter(
-            x=df_search["date"], y=df_search["normalized_sentiment"],
-            mode="lines+markers", line=dict(color="darkorange"),
-        ))
-        fig_search.update_layout(
-            xaxis_title="Meeting Date",
-            yaxis_title=f"Normalized Sentiment: '{search_ngram}'",
-            height=400,
-        )
-        st.plotly_chart(fig_search, use_container_width=True)
+ 
+with meeting_overview_tab:
+    st.caption(f"Selected meeting: {selected_date}")
+    render_meeting_overview_tab(fetch_meeting_sentiment(selected_date))
+ 
+with time_series_tab:
+    render_time_series_tab(df_overview_tabs, selected_year_range)
+ 
+with term_explorer_tab:
+    render_term_explorer_tab(ngram_options, INCLUDE_DICT, fetch_ngram_trend)
+ 
