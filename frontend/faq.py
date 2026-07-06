@@ -2,18 +2,20 @@
 Renders the FAQ page. 
 """
 
+
 import streamlit as st
+from frontend.footer import render_footer
 
-
+ 
+ 
 def render_faq_page():
-
     st.markdown(
         '<h1 class="font-serif" style="text-align:center; margin-top:-0.5rem;">Frequently Asked Questions</h1>',
         unsafe_allow_html=True,
     )
-
+ 
     st.markdown("---")
-
+ 
     with st.expander("What is this project?"):
         st.markdown(
             "An NLP dashboard that scores FOMC meeting minutes for hawkish/dovish "
@@ -22,7 +24,7 @@ def render_faq_page():
             "across every meeting from 1996 onward, and surfaces how the "
             "sentiment attached to those concepts shifts over time."
         )
-
+ 
     with st.expander("What is the FOMC?"):
         st.markdown(
             "The Federal Open Market Committee (FOMC) is the branch of the U.S. "
@@ -30,7 +32,7 @@ def render_faq_page():
             "decisions on interest rates and the money supply, in pursuit of "
             "stable prices and maximum employment."
         )
-
+ 
     with st.expander("What do \"hawkish\" and \"dovish\" mean?"):
         col_hawk, col_dove = st.columns(2)
         with col_hawk:
@@ -47,7 +49,7 @@ def render_faq_page():
                 "lower interest rates or accommodative policy. Doves prioritize "
                 "employment and economic expansion over low inflation."
             )
-
+ 
     with st.expander("What are n-grams?"):
         st.markdown(
             "An n-gram is a sequence of consecutive words. This project tracks "
@@ -62,7 +64,7 @@ def render_faq_page():
             "Tracking multi-word phrases, not just single words, captures "
             "economic concepts more precisely than single words alone."
         )
-
+ 
     with st.expander("How is sentiment measured?"):
         st.markdown(
             "Each tracked n-gram is scored using the Loughran-McDonald financial "
@@ -72,7 +74,7 @@ def render_faq_page():
             "within the document. Scores are then aggregated per meeting and "
             "normalized by document length."
         )
-
+ 
     with st.expander("What inspired this project?"):
         st.markdown(
             "This project's methodology is inspired by *Identifying Monetary "
@@ -83,14 +85,6 @@ def render_faq_page():
             "and visualizations — and is not affiliated with the original "
             "authors or their published results."
         )
-
+ 
     st.markdown("---")
-
-    footer_cols = st.columns(3)
-    with footer_cols[0]:
-        st.caption("LAST UPDATED")
-        st.markdown("**2026-05-14**")
-    with footer_cols[1]:
-        st.caption("METHODOLOGY")
-    with footer_cols[2]:
-        st.caption("DICTIONARY")
+    render_footer()

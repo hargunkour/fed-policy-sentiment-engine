@@ -16,7 +16,8 @@ _CAPTIONS = {
 
  
 def _render_card(title: str, value, view_name: str):
-    with st.container(border=True):
+    with st.container(border=True, ):
+        
         title_col, icon_col = st.columns([5, 1])
         with title_col:
             st.markdown(

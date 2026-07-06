@@ -7,6 +7,8 @@ Injected once per page load via inject_theme(). Pure styling — no data
 or routing logic, and no CSS used to position widgets.
 """
 
+
+
 import streamlit as st
  
 # --- Palette (from Figma "Selection colors") ---
@@ -164,6 +166,51 @@ div[data-testid="stMarkdown"]:has(.pill-marker) + div[data-testid="stButton"] bu
 .insight-positive {{ color: {COLOR_POSITIVE}; font-weight: 600; }}
 .insight-negative {{ color: {COLOR_NEGATIVE}; font-weight: 600; }}
 .insight-quote {{ font-style: italic; color: {COLOR_MUTED}; }}
+ 
+/* --- White-card background + subtle shadow for keyed containers whose
+   key starts with "card_" (KPI cards, Related Semantic Nodes, tabs
+   wrapper). Uses Streamlit's own documented st-key-<key> class, not a
+   positioning hack — just background/border/shadow. st.expander
+   doesn't support key= in all Streamlit versions, so it's styled
+   globally below instead. --- */
+div[class*="st-key-card_"] {{
+    background-color: {COLOR_CARD} !important;
+    border-radius: 10px !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}}
+ 
+/* Extra breathing room below the KPI row, before the tabs section */
+.kpi-row-spacer {{
+    margin-top: 1.75rem;
+}}
+ 
+/* --- FAQ accordion: white background, larger bold question text.
+   Targets st.expander globally — safe since the FAQ page is the only
+   place this app uses st.expander. --- */
+div[data-testid="stExpander"] {{
+    border-radius: 10px !important;
+}}
+div[data-testid="stExpander"] summary p {{
+    font-weight: 700 !important;
+    font-size: 1.1rem !important;
+}}
+div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] p,
+div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] li {{
+    font-size: 1.1rem !important;
+}}
+ 
+/* --- Footer links: plain underlined text + icon, no button box --- */
+div[data-testid="stLinkButton"] a {{
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    color: {COLOR_TEXT} !important;
+    font-weight: 500;
+}}
+div[data-testid="stLinkButton"] a:hover {{
+    color: {COLOR_MUTED} !important;
+}}
 </style>
 """
  

@@ -31,7 +31,7 @@ def render_kpi_detail(
     # --- Top row: Home only (top-right) ---
     _, home_col = st.columns([8, 1])
     with home_col:
-        if st.button("🏠 Home", key=f"home_{view}"):
+        if st.button("Home", key="home_nav_button", icon=":material/home:"):
             go_to("home")
  
     # --- Page title ---

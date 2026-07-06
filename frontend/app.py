@@ -70,6 +70,7 @@ from kpi import render_kpi_row
 from kpi_details import render_kpi_detail
 from utils import year_of
 from tabs import render_meeting_overview_tab, render_time_series_tab, render_term_explorer_tab
+from footer import render_footer
 from backend.config import ALL_NGRAMS, INCLUDE_DICT
 
 @st.cache_data(ttl=60)
@@ -196,6 +197,9 @@ else:
 st.session_state["avg_sentiment_value"] = avg_sentiment
  
 render_kpi_row(documents_analyzed, concepts_tracked, avg_sentiment)
+
+st.markdown('<div class="kpi-row-spacer"></div>', unsafe_allow_html=True)
+
  
 # Sync the sidebar's term search into the Term Explorer tab's active term,
 # but only when the sidebar selection actually changes — so clicking a
@@ -206,22 +210,26 @@ st.session_state["_last_sidebar_term"] = selected_term
  
 df_overview_tabs = pd.DataFrame(overview)  # reuse the same fetch, no second network call
 df_overview_tabs["date"] = pd.to_datetime(df_overview_tabs["date"], format="%Y_%m_%d")
- 
-meeting_overview_tab, time_series_tab, term_explorer_tab = st.tabs(
-    [
-        ":material/visibility: Meeting Overview",
-        ":material/show_chart: Time Series Trend",
-        ":material/search: Term Explorer",
-    ]
-)
- 
-with meeting_overview_tab:
-    st.caption(f"Selected meeting: {selected_date}")
-    render_meeting_overview_tab(fetch_meeting_sentiment(selected_date))
- 
-with time_series_tab:
-    render_time_series_tab(df_overview_tabs, selected_year_range)
- 
-with term_explorer_tab:
-    render_term_explorer_tab(ngram_options, INCLUDE_DICT, fetch_ngram_trend)
- 
+
+with st.container(border=True, key="tabs_wrapper"):
+    meeting_overview_tab, time_series_tab, term_explorer_tab = st.tabs(
+        [
+            ":material/visibility: Meeting Overview",
+            ":material/show_chart: Time Series Trend",
+            ":material/search: Term Explorer",
+        ]
+    )
+    
+    with meeting_overview_tab:
+        st.caption(f"Selected meeting: {selected_date}")
+        render_meeting_overview_tab(fetch_meeting_sentiment(selected_date))
+    
+    with time_series_tab:
+        render_time_series_tab(df_overview_tabs, selected_year_range)
+    
+    with term_explorer_tab:
+        render_term_explorer_tab(ngram_options, INCLUDE_DICT, fetch_ngram_trend)
+    
+
+st.markdown("---")
+render_footer()
