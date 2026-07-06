@@ -17,6 +17,8 @@ import plotly.graph_objects as go
 
 from theme import inject_theme
 from state import init_view_state, get_view, go_to
+from frontend.faq import render_faq_page
+
 
 # Reminder for self: Change this to deployed backend URL later — for now, local.
 BACKEND_URL = "http://127.0.0.1:8000"
@@ -49,18 +51,15 @@ with header_left:
 with header_right:
     st.write("")  # vertical spacer to align button with title
     if current_view == "faq":
-        if st.button("🏠 Home", key="home_nav_button"):
+        if st.button("Home", key="home_nav_button", icon=":material/home:"):
             go_to("home")
     else:
-        if st.button("❓ FAQs", key="faq_nav_button"):
+        if st.button("FAQs", key="faq_nav_button", icon=":material/help:"):
             go_to("faq")
 
-# --- FAQ placeholder view (full content comes in Step 9) ---
+# --- FAQ page ---
 if current_view == "faq":
-    st.markdown('<div class="dashboard-card">', unsafe_allow_html=True)
-    st.subheader("FAQs")
-    st.write("FAQ content will be built in a later step.")
-    st.markdown("</div>", unsafe_allow_html=True)
+    render_faq_page()
     st.stop()
 
 # --- Everything below this only renders on the "home" view ---
@@ -209,7 +208,11 @@ df_overview_tabs = pd.DataFrame(overview)  # reuse the same fetch, no second net
 df_overview_tabs["date"] = pd.to_datetime(df_overview_tabs["date"], format="%Y_%m_%d")
  
 meeting_overview_tab, time_series_tab, term_explorer_tab = st.tabs(
-    ["👁 Meeting Overview", "📈 Time Series Trend", "🔍 Term Explorer"]
+    [
+        ":material/visibility: Meeting Overview",
+        ":material/show_chart: Time Series Trend",
+        ":material/search: Term Explorer",
+    ]
 )
  
 with meeting_overview_tab:
