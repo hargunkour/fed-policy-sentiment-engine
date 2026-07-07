@@ -20,8 +20,7 @@ from state import init_view_state, get_view, go_to
 from frontend.faq import render_faq_page
 
 
-# Reminder for self: Change this to deployed backend URL later — for now, local.
-BACKEND_URL = "http://127.0.0.1:8000"
+BACKEND_URL = "https://fed-policy-sentiment-api.onrender.com/"
 
 st.set_page_config(page_title="FOMC Sentiment Dashboard", layout="wide")
 
