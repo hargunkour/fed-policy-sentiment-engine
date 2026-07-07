@@ -20,7 +20,7 @@ from state import init_view_state, get_view, go_to
 from frontend.faq import render_faq_page
 
 
-BACKEND_URL = "https://fed-policy-sentiment-api.onrender.com/"
+BACKEND_URL = "https:/fed-policy-sentiment-api.onrender.com/"
 
 st.set_page_config(page_title="FOMC Sentiment Dashboard", layout="wide")
 
